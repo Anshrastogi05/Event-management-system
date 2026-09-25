@@ -18,7 +18,7 @@ This project is split into two deployable apps:
 7. Configure Google OAuth in Google Cloud Console with the backend callback URL
    `https://your-backend.onrender.com/api/auth/google/callback`, then set
    `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `GOOGLE_REDIRECT_URI` on Render.
-   Keep `AUTH_OTP_ENABLED=false` while OTP is temporarily bypassed.
+   Keep `AUTH_OTP_ENABLED=false` if signup OTP remains bypassed. Login 2FA is enabled with `AUTH_LOGIN_OTP_ENABLED=true` (the default).
 8. Deploy the service and copy the Render URL.
 
 ## 2. Deploy the frontend on Vercel

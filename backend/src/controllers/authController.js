@@ -274,7 +274,9 @@ async function issueOtpChallenge(user, purpose) {
     purpose,
     emailDeliveryFailed,
   );
-  if (!hasMailTransport) {
+  // Never expose an OTP in a production response. Local development may use
+  // the response value when Brevo is intentionally not configured.
+  if (!hasMailTransport && env.nodeEnv !== "production") {
     response.otpCode = rawCode;
   }
 
@@ -343,7 +345,7 @@ export const login = async (req, res) => {
     const valid = await user.comparePassword(password);
     if (!valid) return res.status(400).json({ message: "Invalid credentials" });
 
-    if (!env.authOtpEnabled) {
+    if (!env.authLoginOtpEnabled) {
       if (!user.isEmailVerified) {
         user.isEmailVerified = true;
         clearAuthOtp(user);

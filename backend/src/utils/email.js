@@ -1,7 +1,5 @@
-import { BrevoClient } from "@getbrevo/brevo";
+import axios from "axios";
 import { env } from "../config/env.js";
-
-let brevoClient = null;
 
 function getMissingEmailEnvVars() {
   const missing = [];
@@ -76,34 +74,13 @@ function normalizeRecipient(to) {
   throw new Error("Recipient email is required");
 }
 
-function getBrevoClient() {
-  if (brevoClient) {
-    return brevoClient;
-  }
-
-  assertBrevoConfiguration();
-
-  brevoClient = new BrevoClient({
-    apiKey: String(env.brevoApiKey || process.env.BREVO_API_KEY || "").trim(),
-  });
-
-  return brevoClient;
-}
-
 function getBrevoErrorDetails(error) {
-  const rawHeaders = error?.rawResponse?.headers;
-  const requestId =
-    error?.requestId ||
-    rawHeaders?.get?.("x-request-id") ||
-    rawHeaders?.get?.("X-Request-Id") ||
-    undefined;
-
   return {
-    statusCode: error?.statusCode,
+    statusCode: error?.response?.status || error?.statusCode,
     message: error?.message,
-    body: error?.body,
+    body: error?.response?.data || error?.body,
     code: error?.code,
-    requestId,
+    requestId: error?.response?.headers?.["x-request-id"],
   };
 }
 
@@ -116,7 +93,7 @@ function logBrevoError(context, error) {
 }
 
 function createSendEmailError(error) {
-  const statusCode = error?.statusCode;
+  const statusCode = error?.response?.status || error?.statusCode;
   const message = statusCode
     ? `Brevo email request failed with status ${statusCode}`
     : error?.message || "Brevo email request failed";
@@ -125,8 +102,8 @@ function createSendEmailError(error) {
   wrappedError.name = "BrevoEmailError";
   wrappedError.statusCode = statusCode;
   wrappedError.code = error?.code;
-  wrappedError.body = error?.body;
-  wrappedError.requestId = error?.requestId;
+  wrappedError.body = error?.response?.data || error?.body;
+  wrappedError.requestId = error?.response?.headers?.["x-request-id"];
   wrappedError.cause = error;
 
   return wrappedError;
@@ -142,6 +119,7 @@ export async function sendEmail({ to, subject, html, text }) {
     env.emailFrom || process.env.EMAIL_FROM,
   );
   const recipient = normalizeRecipient(to);
+  assertBrevoConfiguration();
   const payload = {
     sender,
     subject: trimmedSubject,
@@ -157,11 +135,21 @@ export async function sendEmail({ to, subject, html, text }) {
   }
 
   try {
-    const response =
-      await getBrevoClient().transactionalEmails.sendTransacEmail(payload);
+    const response = await axios.post(
+      "https://api.brevo.com/v3/smtp/email",
+      payload,
+      {
+        headers: {
+          accept: "application/json",
+          "api-key": String(env.brevoApiKey || process.env.BREVO_API_KEY || "").trim(),
+          "content-type": "application/json",
+        },
+        timeout: 15000,
+      },
+    );
 
     console.log("========== BREVO SUCCESS ==========");
-    console.log(response);
+    console.log(response.data);
     console.log("==================================");
 
     return response;

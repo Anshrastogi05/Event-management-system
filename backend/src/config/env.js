@@ -88,8 +88,9 @@ export const env = {
   authOtpResendCooldownSeconds: Number(
     process.env.AUTH_OTP_RESEND_COOLDOWN_SECONDS || 60,
   ),
-  // OTP remains implemented and can be re-enabled with AUTH_OTP_ENABLED=true.
+  // Signup OTP can remain bypassed temporarily. Login 2FA is enabled by default.
   authOtpEnabled: process.env.AUTH_OTP_ENABLED === "true",
+  authLoginOtpEnabled: process.env.AUTH_LOGIN_OTP_ENABLED !== "false",
 
   googleClientId: process.env.GOOGLE_CLIENT_ID || "",
   googleClientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
